@@ -8,31 +8,32 @@ var thetaGallery = (function(){
 	distance = 526,
 	zoomMin = 1,
 	zoomMax = 526,
+	zoomSpeed = 0.25,
 	galleryId = 'view360',
 	viewer = $( '#' + galleryId ),
 	viewerDomElement = viewer[0],
 	defaultImage = './assets/images/360s/test-image-ricoh-theta-s.jpg';
 
 	var init = function () {
+		// initalise the scene and camera
 		scene = new THREE.Scene();
-
 		camera = new THREE.PerspectiveCamera( 100, viewerDomElement.offsetWidth / viewerDomElement.offsetHeight, zoomMin, zoomMax + 550 );
 
 		var geometry = new THREE.SphereGeometry(500, 100, 100);
 		geometry.scale( -1, 1, 1 );
 
 		var texture = new THREE.TextureLoader().load( defaultImage );
-		
-		var material   = new THREE.MeshBasicMaterial( { map: texture } );
-
+		var material = new THREE.MeshBasicMaterial( { map: texture } );
 		var mesh = new THREE.Mesh( geometry, material );
 		scene.add( mesh );
 
+		// render the 360 viewer
 		renderer = new THREE.WebGLRenderer();
 		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.setSize( viewerDomElement.offsetWidth, viewerDomElement.offsetHeight );
 		viewerDomElement.appendChild( renderer.domElement );
 
+		// set up user interaction events
 		viewer.on('mousedown', onMouseDown);
 		viewer.on('mousemove', onMouseMove);
 		viewer.on('mouseup', onMouseUp);
@@ -73,7 +74,7 @@ var thetaGallery = (function(){
 	};
 
 	var onMouseWheel = function ( event ) {
-		distance -= event.deltaY * event.deltaFactor * 0.25;
+		distance -= event.deltaY * event.deltaFactor * zommSpeed;
 
 		// Limit zooming between max and min values
 		if (distance < zoomMin) {
@@ -102,7 +103,8 @@ var thetaGallery = (function(){
 	};
 
 	var saveImage = function () {
-		
+		// pull image data from div
+		// send ajax request to save image
 	};
 
 	return {
@@ -111,7 +113,5 @@ var thetaGallery = (function(){
 })();
 
 $(function() {
-
 	thetaGallery.init();
-
 });
