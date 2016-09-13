@@ -1,110 +1,117 @@
-var camera, scene, renderer;
+var thetaGallery = (function(){
+	var camera, scene, renderer;
+	var isUserInteracting = false,
+	onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+	lon = -57.7, onMouseDownLon = 0,
+	lat = 62.9, onMouseDownLat = 0,
+	phi = 0, theta = 0,
+	distance = 526,
+	zoomMin = 1,
+	zoomMax = 526,
+	galleryId = 'view360',
+	viewer = $( '#' + galleryId ),
+	viewerDomElement = viewer[0],
+	defaultImage = './assets/images/360s/test-image-ricoh-theta-s.jpg';
 
-var isUserInteracting = false,
-onMouseDownMouseX = 0, onMouseDownMouseY = 0,
-lon = -57.7, onMouseDownLon = 0,
-lat = 62.9, onMouseDownLat = 0,
-phi = 0, theta = 0,
-distance = 526,
-zoomMin = 1,
-zoomMax = 526,
-container = document.getElementById( 'view360' );
+	var init = function () {
+		scene = new THREE.Scene();
 
-init();
-animate();
+		camera = new THREE.PerspectiveCamera( 100, viewerDomElement.offsetWidth / viewerDomElement.offsetHeight, zoomMin, zoomMax + 550 );
 
-function init() {
-	scene = new THREE.Scene();
+		var geometry = new THREE.SphereGeometry(500, 100, 100);
+		geometry.scale( -1, 1, 1 );
 
-	camera = new THREE.PerspectiveCamera( 100, container.offsetWidth / container.offsetHeight, zoomMin, zoomMax + 550 );
+		var texture = new THREE.TextureLoader().load( defaultImage );
+		
+		var material   = new THREE.MeshBasicMaterial( { map: texture } );
 
-	var geometry = new THREE.SphereGeometry(500, 100, 100);
-	geometry.scale( -1, 1, 1 );
+		var mesh = new THREE.Mesh( geometry, material );
+		scene.add( mesh );
 
-	var texture = new THREE.TextureLoader().load( './assets/images/360s/test-image-ricoh-theta-s.jpg' );
-	
-	var material   = new THREE.MeshBasicMaterial( { map: texture } );
+		renderer = new THREE.WebGLRenderer();
+		renderer.setPixelRatio( window.devicePixelRatio );
+		renderer.setSize( viewerDomElement.offsetWidth, viewerDomElement.offsetHeight );
+		viewerDomElement.appendChild( renderer.domElement );
 
-	var mesh = new THREE.Mesh( geometry, material );
-	scene.add( mesh );
+		viewer.on('mousedown', onMouseDown);
+		viewer.on('mousemove', onMouseMove);
+		viewer.on('mouseup', onMouseUp);
+		viewer.on('mousewheel', onMouseWheel);
+		$(window).on('resize', onWindowResize);
+		
+		animate();
+	};
 
-	renderer = new THREE.WebGLRenderer();
-	renderer.setPixelRatio( window.devicePixelRatio );
-	renderer.setSize( container.offsetWidth, container.offsetHeight );
-	container.appendChild( renderer.domElement );
+	var onWindowResize = function () {
+		camera.aspect = viewerDomElement.offsetWidth / viewerDomElement.offsetHeight;
+		camera.updateProjectionMatrix();
 
-	document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-	document.addEventListener( 'mouseup', onDocumentMouseUp, false );
-	document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
-	document.addEventListener( 'MozMousePixelScroll', onDocumentMouseWheel, false );
-	window.addEventListener( 'resize', onWindowResize, false );
-}
+		renderer.setSize( viewerDomElement.offsetWidth, viewerDomElement.offsetHeight );
+	};
 
-function onWindowResize() {
-	camera.aspect = container.offsetWidth / container.offsetHeight;
-	camera.updateProjectionMatrix();
+	var onMouseDown = function ( event ) {
+		event.preventDefault();
 
-	renderer.setSize( container.offsetWidth, container.offsetHeight );
-}
+		isUserInteracting = true;
 
-function onDocumentMouseDown( event ) {
-	event.preventDefault();
+		onPointerDownPointerX = event.clientX;
+		onPointerDownPointerY = event.clientY;
 
-	isUserInteracting = true;
+		onPointerDownLon = lon;
+		onPointerDownLat = lat;
+	};
 
-	onPointerDownPointerX = event.clientX;
-	onPointerDownPointerY = event.clientY;
+	var onMouseMove = function ( event ) {
+		if ( isUserInteracting === true ) {
+			lon = ( onPointerDownPointerX - event.clientX ) * 0.1 + onPointerDownLon;
+			lat = ( onPointerDownPointerY - event.clientY ) * 0.1 + onPointerDownLat;
+		}
+	};
 
-	onPointerDownLon = lon;
-	onPointerDownLat = lat;
-}
+	var onMouseUp = function ( event ) {
+		isUserInteracting = false;
+	};
 
-function onDocumentMouseMove( event ) {
-	if ( isUserInteracting === true ) {
-		lon = ( onPointerDownPointerX - event.clientX ) * 0.1 + onPointerDownLon;
-		lat = ( onPointerDownPointerY - event.clientY ) * 0.1 + onPointerDownLat;
-	}
-}
+	var onMouseWheel = function ( event ) {
+		distance -= event.deltaY * event.deltaFactor * 0.25;
 
-function onDocumentMouseUp( event ) {
-	isUserInteracting = false;
-}
+		// Limit zooming between max and min values
+		if (distance < zoomMin) {
+			distance = zoomMin;
+		} else if (distance > zoomMax) {
+			distance = zoomMax;
+		}
+	};
 
-function onDocumentMouseWheel( event ) {
-	// WebKit
-	if ( event.wheelDeltaY ) {
-		distance -= event.wheelDeltaY * 0.05;
-	// Opera / Explorer 9
-	} else if ( event.wheelDelta ) {
-		distance -= event.wheelDelta * 0.05;
-	// Firefox
-	} else if ( event.detail ) {
-		distance += event.detail * 1.0;
-	}
+	var animate = function () {
+		requestAnimationFrame( animate );
+		update();
+	};
 
-	// make it so you can't zoom in and out too far
-	if (distance < zoomMin) {
-		distance = zoomMin;
-	} else if (distance > zoomMax) {
-		distance = zoomMax;
-	}
-}
+	var update = function () {
+		lat = Math.max( -85, Math.min( 85, lat ) );
+		phi = THREE.Math.degToRad( 90 - lat );
+		theta = THREE.Math.degToRad( lon - 180 );
 
-function animate() {
-	requestAnimationFrame( animate );
-	update();
-}
+		camera.position.x = distance * Math.sin( phi ) * Math.cos( theta );
+		camera.position.y = distance * Math.cos( phi );
+		camera.position.z = distance * Math.sin( phi ) * Math.sin( theta );
 
-function update() {
-	lat = Math.max( -85, Math.min( 85, lat ) );
-	phi = THREE.Math.degToRad( 90 - lat );
-	theta = THREE.Math.degToRad( lon - 180 );
+		camera.lookAt( scene.position );
+		renderer.render( scene, camera );
+	};
 
-	camera.position.x = distance * Math.sin( phi ) * Math.cos( theta );
-	camera.position.y = distance * Math.cos( phi );
-	camera.position.z = distance * Math.sin( phi ) * Math.sin( theta );
+	var saveImage = function () {
+		
+	};
 
-	camera.lookAt( scene.position );
-	renderer.render( scene, camera );
-}
+	return {
+		init: init
+	};
+})();
+
+$(function() {
+
+	thetaGallery.init();
+
+});
