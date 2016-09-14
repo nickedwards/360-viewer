@@ -28,7 +28,9 @@ var thetaGallery = (function(){
 		scene.add( mesh );
 
 		// render the 360 viewer
-		renderer = new THREE.WebGLRenderer();
+		renderer = new THREE.WebGLRenderer({
+			preserveDrawingBuffer: true
+		});
 		renderer.setPixelRatio( window.devicePixelRatio );
 		renderer.setSize( viewerDomElement.offsetWidth, viewerDomElement.offsetHeight );
 		viewerDomElement.appendChild( renderer.domElement );
@@ -74,7 +76,7 @@ var thetaGallery = (function(){
 	};
 
 	var onMouseWheel = function ( event ) {
-		distance -= event.deltaY * event.deltaFactor * zommSpeed;
+		distance -= event.deltaY * event.deltaFactor * zoomSpeed;
 
 		// Limit zooming between max and min values
 		if (distance < zoomMin) {
